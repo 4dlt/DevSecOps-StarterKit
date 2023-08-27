@@ -1,6 +1,4 @@
-# DevSecOps-StarterKit
-Elevate CI/CD security with ready-to-use templates for GitHub Actions, Azure DevOps, &amp; GitLab CI. Covering SAST, SCA, IaC, Docker scans, &amp; secret detection. A one-stop solution for developers aiming for safer SDLC
-# DevSecOps Pipeline Templates: Elevate Your CI/CD Security
+# DevSecOps-StarterKit: Elevate Your CI/CD Security
 
 Welcome to **DevSecOps-StarterKit**! This repository is your springboard to seamlessly infusing vital security checks into the Software Development Life Cycle (SDLC). Tailored for developers, especially those fresh to the security realm, we offer out-of-the-box templates for leading pipeline solutions: GitHub Actions, Azure DevOps Pipelines, and GitLab CI. Dive into our comprehensive suite of security analyses:
 

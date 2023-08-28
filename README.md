@@ -37,10 +37,22 @@ Welcome to the **DevSecOps StarterKit**! This repository serves as a launchpad f
 
 Remember, each scan is important in its own way, addressing different aspects of application and infrastructure security. Using them in tandem ensures a more comprehensive security evaluation for your projects.
 
+## 📋 Prerequisites:
+
+For the **DevSecOps StarterKit** to function seamlessly, there's only one primary requirement:
+
+### Docker Support 🐳:
+- All the security scans included in this kit utilize Docker containers. Therefore, ensure that your CI/CD runner is capable of executing Docker commands.
+- Good news! Most modern CI/CD platforms, including GitLab CI, Azure DevOps, and GitHub Actions, have built-in support for Docker by default. This means you can typically use the StarterKit without any additional runner configuration.
+
+Before integrating any pipeline from this kit, ensure your CI/CD environment has Docker installed and configured. If you're using a custom runner, verify that Docker is accessible to it.
+
+By keeping Docker as the sole dependency, we aim to make the integration process smooth and the entry barrier minimal for teams of all sizes.
+
 ## 🚀 Getting Started:
 1. Choose your platform directory (GitLab CI, Azure DevOps, or GitHub Actions).
-2. Cpy the give template into your project files. No configuration is needed! :)
-3. Integrate the pipeline configuration into your project, and you're set to have automated security scans with every code push!
+3. Copy the given template into your project files. No additional configuration is needed!! :)
+4. Integrate the pipeline configuration into your project, and you're set to have automated security scans with every code push!
 
 ## 💡 Why DevSecOps?
 Security is often treated as an afterthought, but with the rise in cyber threats, it's crucial to integrate security measures right from the development phase. DevSecOps bridges the gap between development and security, ensuring faster releases without compromising on security.

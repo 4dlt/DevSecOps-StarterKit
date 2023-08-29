@@ -1,0 +1,127 @@
+name: DevSecOps
+on: workflow_dispatch
+
+env:
+  DOCKER_IMAGE: 'webgoat/webgoat-8.0'
+
+jobs:
+
+  trufflehog_secret_scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: set up docker
+      run: |
+        docker pull trufflesecurity/trufflehog:latest
+        docker pull stedolan/jq:latest
+    - name: Trufflehog Scan
+      run: |
+        {
+            echo "["
+            first=true
+            docker run --rm -v $(pwd):/home trufflesecurity/trufflehog:latest filesystem --json /home | while read -r line; do
+                if [ "$first" != true ]; then
+                    echo ","
+                fi
+
+                echo "$line" | docker run --rm stedolan/jq .
+
+                first=false
+            done
+            echo "]"
+        } > trufflehog-secrets-report.json
+      continue-on-error: true
+
+    - name: Upload trufflehog report
+      uses: actions/upload-artifact@v2
+      with:
+        name: trufflehog-secrets-report
+        path: trufflehog-secrets-report.json
+
+  semgrep_sast_scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Semgrep Scan
+      run: |
+        docker pull returntocorp/semgrep
+        docker run --rm -v $(pwd):/src returntocorp/semgrep semgrep --config auto --json -o /src/semgrep-sast-report.json
+      continue-on-error: true
+
+    - name: Upload semgrep report
+      uses: actions/upload-artifact@v2
+      with:
+        name: semgrep-sast-report
+        path: semgrep-sast-report.json
+
+  dependency_check_sca_scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: dir
+      run: mkdir -p dependency-check-sca-report
+
+    - name: Dependency Check Scan
+      run: docker run --rm --user=root -v "${{ github.workspace }}:/src" owasp/dependency-check --scan /src --format JSON --format HTML --out /src/dependency-check-sca-report --prettyPrint
+      continue-on-error: true
+
+    - name: Upload Dependency Check Reports
+      uses: actions/upload-artifact@v2
+      with:
+        name: dependency-check-sca-report
+        path: |
+          dependency-check-sca-report/dependency-check-report.json
+          dependency-check-sca-report/dependency-check-report.html
+
+  trivy_image_scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Image Scan with Trivy
+      run: |
+        # if you want to buld the image, you can use the following command
+        # docker build -t ${{ env.DOCKER_IMAGE }} .
+        
+        # if you want to scan the image from a private registry, you need to login first
+        # docker login -u ${{ env.REGISTRY_USERNAME }} -p ${{ env.REGISTRY_PASSWORD }} ${{ env.REGISTRY_URL }}
+        
+        docker pull ${{ env.DOCKER_IMAGE }}
+        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/home aquasec/trivy image ${{ env.DOCKER_IMAGE }} --format json -o /home/trivy-image-report.json
+      continue-on-error: true
+
+    - name: Upload Trivy Scan Report
+      uses: actions/upload-artifact@v2
+      with:
+        name: trivy-scan-report
+        path: trivy-image-report.json
+
+  checkov_iac_scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Checkov Scan
+      run: |
+        docker pull bridgecrew/checkov
+        docker run --volume ${{ github.workspace }}:/tf --workdir /tf bridgecrew/checkov --directory /tf -o cli -o json --output-file-path console,checkov-iac-report.json --skip-resources-without-violations --quiet --compact
+      continue-on-error: true
+
+    - name: Upload Checkov Report
+      uses: actions/upload-artifact@v2
+      with:
+        name: checkov-iac-report
+        path: checkov-iac-report.json

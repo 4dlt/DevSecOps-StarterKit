@@ -1,0 +1,93 @@
+trigger: none
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  DOCKER_IMAGE: 'webgoat/webgoat-8.0'
+
+stages:
+- stage: scans
+  jobs:
+  - job: TrufflehogSecretScan
+    steps:
+    - checkout: git://DevSecOps StarterKit/juice-shop-test
+    - script: |
+        docker pull trufflesecurity/trufflehog:latest
+        docker pull stedolan/jq:latest
+        {
+          echo "["
+          first=true
+          docker run --rm -v $(pwd):/home trufflesecurity/trufflehog:latest filesystem --json /home | while read -r line; do
+            if [ "$first" != true ]; then
+                echo ","
+            fi
+            echo "$line" | docker run --rm stedolan/jq .
+            first=false
+          done
+          echo "]"
+        } > trufflehog-secrets-report.json
+      displayName: 'Trufflehog Scan'
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'trufflehog-secrets-report.json'
+        artifact: 'Trufflehog Secrets Report'
+        publishLocation: 'pipeline'
+
+  - job: SemgrepSASTScan
+    steps:
+    - checkout: git://DevSecOps StarterKit/juice-shop-test
+    - script: |
+        docker run --rm -v $(pwd):/src returntocorp/semgrep semgrep --config auto --json -o /src/semgrep-sast-report.json
+      displayName: 'Semgrep Scan'
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'semgrep-sast-report.json'
+        artifact: 'Semgrep SAST Report'
+        publishLocation: 'pipeline'
+
+  - job: DependencyCheckSCAScan
+    steps:
+    - checkout: git://DevSecOps StarterKit/juice-shop-test
+    - script: mkdir -p dependency-check-sca-report
+    - script: |
+        docker run --rm --user=root -v "$(System.DefaultWorkingDirectory):/src" owasp/dependency-check --scan /src --format JSON --format HTML --out /src/dependency-check-sca-report --prettyPrint
+      displayName: 'Dependency Check Scan'
+      continueOnError: true
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'dependency-check-sca-report/dependency-check-report.json'
+        artifact: 'Dependency Check SCA Report (JSON)'
+        publishLocation: 'pipeline'
+      condition: succeededOrFailed()
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'dependency-check-sca-report/dependency-check-report.html'
+        artifact: 'Dependency Check SCA Report (HTML)'
+        publishLocation: 'pipeline'
+      condition: succeededOrFailed()
+
+  - job: TrivyImageScan
+    steps:
+    - checkout: git://DevSecOps StarterKit/juice-shop-test
+    - script: |
+        docker pull $(DOCKER_IMAGE)
+        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/home aquasec/trivy image $(DOCKER_IMAGE) --format json -o /home/trivy-image-report.json
+      displayName: 'Image Scan with Trivy'
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'trivy-image-report.json'
+        artifact: 'Trivy Image Scan Report'
+        publishLocation: 'pipeline'
+
+  - job: CheckovIACScan
+    steps:
+    - checkout: git://DevSecOps StarterKit/juice-shop-test
+    - script: |
+        docker run --volume $(pwd):/tf --workdir /tf bridgecrew/checkov --directory /tf -o cli -o json --output-file-path console,checkov-iac-report.json --skip-resources-without-violations --quiet --compact --soft-fail
+      displayName: 'Checkov IaC Scan'
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'checkov-iac-report.json'
+        artifact: 'Checkov IaC Scan Report'
+        publishLocation: 'pipeline'

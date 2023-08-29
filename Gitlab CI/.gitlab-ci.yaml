@@ -1,0 +1,89 @@
+image: docker:latest
+services:
+  - docker:dind
+
+stages:
+  - scans
+
+# Variable name for the docker image to be scanned
+variables:
+  DOCKER_IMAGE: "webgoat/webgoat-8.0"
+
+trufflehog_secret_scan:
+  stage: scans
+  script:
+    - docker pull trufflesecurity/trufflehog:latest
+    - docker pull stedolan/jq:latest
+    - |
+      {
+          echo "["
+          first=true
+          docker run --rm  -v $(pwd):/home trufflesecurity/trufflehog:latest filesystem --json /home | while read -r line; do
+              if [ "$first" != true ]; then
+                  echo ","
+              fi
+
+              echo "$line" | docker run --rm stedolan/jq .
+
+              first=false
+          done
+          echo "]"
+      } > trufflehog-secrets-report.json
+  artifacts:
+    when: always
+    paths:
+      - trufflehog-secrets-report.json
+    expire_in: 1 week
+  allow_failure: true
+
+semgrep_sast_scan:
+  stage: scans
+  script:
+    - docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --config auto --json -o /src/semgrep-sast-report.json
+  artifacts:
+    when: always
+    paths:
+      - semgrep-sast-report.json
+    expire_in: 1 week
+  allow_failure: true
+
+dependency_check_sca_scan:
+  stage: scans
+  script:
+    - docker run --rm -v "${PWD}:/src" owasp/dependency-check --scan /src --format JSON --format HTML --out /src/dependency-check-sca-report --prettyPrint
+  artifacts:
+    when: always
+    paths:
+      - dependency-check-sca-report/dependency-check-report.json
+      - dependency-check-sca-report/dependency-check-report.html
+    expire_in: 1 week
+  allow_failure: true
+
+trivy_image_scan:
+  stage: scans
+  script:
+    # Docker image scan using Trivy
+    # For scaning a local image built, uncomment the next line
+    # - docker build -t $DOCKER_IMAGE .
+    # The following line is for scanning a remote image
+    - docker pull $DOCKER_IMAGE
+    # Scan execution
+    - docker run -v $(pwd):/src aquasec/trivy image $DOCKER_IMAGE --format json -o /src/trivy-image-report.json
+  artifacts:
+    when: always
+    paths:
+      - trivy-image-report.json
+    expire_in: 1 week
+  allow_failure: true
+
+checkov_iac_scan:
+  stage: scans
+  script:
+    # IaC scan using Checkov
+    - docker run -v $(pwd):/tf --workdir /tf bridgecrew/checkov --directory /tf -o cli -o json --output-file-path console,checkov-iac-report.json --skip-resources-without-violations --quiet --compact
+  artifacts:
+    when: always
+    paths:
+      - checkov-iac-report.json
+    expire_in: 1 week
+  allow_failure: true

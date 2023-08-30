@@ -51,8 +51,9 @@ By keeping Docker as the sole dependency, we aim to make the integration process
 
 ## 🚀 Getting Started:
 1. Choose your platform directory (GitLab CI, Azure DevOps, or GitHub Actions).
-3. Copy the given template into your project files. No additional configuration is needed!! :)
-4. Integrate the pipeline configuration into your project, and you're set to have automated security scans with every code push!
+3. Copy the given template into your project files. 
+4. Make sure you change the default docker image for the one you want to scan in the variables section. If you want to scan your own built image, uncomment the section made for that purpose under the Image Scan section.
+5. Integrate the pipeline configuration into your project, and you're set to have automated security scans with every code push!
 
 ## 💡 Why DevSecOps?
 Security is often treated as an afterthought, but with the rise in cyber threats, it's crucial to integrate security measures right from the development phase. DevSecOps bridges the gap between development and security, ensuring faster releases without compromising on security.

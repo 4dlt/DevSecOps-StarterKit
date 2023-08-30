@@ -11,7 +11,6 @@ stages:
   jobs:
   - job: TrufflehogSecretScan
     steps:
-    - checkout: git://DevSecOps StarterKit/juice-shop-test
     - script: |
         docker pull trufflesecurity/trufflehog:latest
         docker pull stedolan/jq:latest
@@ -36,7 +35,6 @@ stages:
 
   - job: SemgrepSASTScan
     steps:
-    - checkout: git://DevSecOps StarterKit/juice-shop-test
     - script: |
         docker run --rm -v $(pwd):/src returntocorp/semgrep semgrep --config auto --json -o /src/semgrep-sast-report.json
       displayName: 'Semgrep Scan'
@@ -48,7 +46,6 @@ stages:
 
   - job: DependencyCheckSCAScan
     steps:
-    - checkout: git://DevSecOps StarterKit/juice-shop-test
     - script: mkdir -p dependency-check-sca-report
     - script: |
         docker run --rm --user=root -v "$(System.DefaultWorkingDirectory):/src" owasp/dependency-check --scan /src --format JSON --format HTML --out /src/dependency-check-sca-report --prettyPrint
@@ -69,7 +66,6 @@ stages:
 
   - job: TrivyImageScan
     steps:
-    - checkout: git://DevSecOps StarterKit/juice-shop-test
     - script: |
         docker pull $(DOCKER_IMAGE)
         docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/home aquasec/trivy image $(DOCKER_IMAGE) --format json -o /home/trivy-image-report.json
@@ -82,7 +78,6 @@ stages:
 
   - job: CheckovIACScan
     steps:
-    - checkout: git://DevSecOps StarterKit/juice-shop-test
     - script: |
         docker run --volume $(pwd):/tf --workdir /tf bridgecrew/checkov --directory /tf -o cli -o json --output-file-path console,checkov-iac-report.json --skip-resources-without-violations --quiet --compact --soft-fail
       displayName: 'Checkov IaC Scan'
